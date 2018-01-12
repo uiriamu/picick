@@ -10,7 +10,7 @@ var //The ID to Be Used for the Canvas Element//
     
     //Automatically Starts picick and Creates Canvas when the page Loads//
     //If set to False, loadpicick() must be called to do Load the Canvas and Selector//
-    loadOnPageLoad=true, 
+    loadOnPageLoad=false, 
     
     //If you would Rather Use a Colored Internal Shadow than//
     //a Colored Border Indicator, Change these to your liking and set//
@@ -55,7 +55,7 @@ var //The ID to Be Used for the Canvas Element//
 function getStyling(){
  var st='<style type="text/css">';
  //EDITABLE CSS//
- st+="button, input,label, #fileWrapper{";
+ st+="button, input,label,#setButton, #fileSelectButton{";
    st+="user-select:none;";
    st+="border-radius:10px;";
    st+="border-width:0;";
@@ -104,18 +104,6 @@ function getStyling(){
    st+="overflow:hidden;";
  st+="}";
 
- 
-
-
- st+="#fileWrapper{";
-   st+="position:relative;";
-   st+="min-height:50%;";
-   st+="padding:2;";
-   st+="padding-right:10%;";
-   st+="padding-left:10%;";
-   st+="display:inline-block;";
- st+="}";
-
  st+="#noscriptImg{";
    st+="max-height:100%;";
    st+="position: absolute;";
@@ -146,22 +134,29 @@ function getStyling(){
  st+="#fileSelectText{";
    st+="display:inline-block;";
    st+="min-width: 30%;";
-
-   
+ st+="}";
+ 
+ st+="#fileSelectButton{";
+   st+="position:relative;";
+   st+="min-height:50%;";
+   st+="padding-right:10%;";
+   st+="padding-left:10%;";
+   st+="overflow:hidden;";
  st+="}";
 
  st+="#setButton{";
-   st+="min-width:20%;";
-   st+="padding-right:5%;";
-   st+="padding-left:5%;";
-   st+="display:inline-block;";
+   
+   st+="padding:0;";
+   st+="padding-right:8%;";
+   st+="padding-left:8%;";
    st+="font:inherit;";
-   st+="margin-left:3%;";
-
+   st+="margin:0;";
+   st+="margin-left:2%;";
  st+="}";
 
  st+="#setButtonText{";
-   st+="display:inline-block;";
+ st+="float:right;";
+
  st+="}";
 
 
@@ -195,6 +190,7 @@ var c,
     dwidth,
     dheight,
     dX,dY,
+    dXf,dYf,
     dragging,
     draggingOffsetX,draggingOffsetY,
     img,
@@ -209,6 +205,7 @@ var c,
     loopStarted=false,
     selectorLoaded=true,
     LOOP_PAUSED=728733,
+    ongoingTouches=[];
     rect;
 
 function setVars(){
@@ -226,40 +223,40 @@ function setVars(){
 function writeHTML(){
 var html=getStyling()+"";
 
-html=html+"<div id='"+wrapperID+"'>";
-html=html+"<canvas id='"+canvasID+"'>";
-html=html+"<img id='noscriptImg'/>";
-html=html+"</canvas>";
-html=html+"<noscript style='margin-top:20px;display:inline-block;'>";
-html=html+"Unable to Edit Image because Javascript is Disabled or html5 Canvas is not supported.";
-html=html+"</noscript>";
+html+="<div id='"+wrapperID+"'>";
+html+="<canvas id='"+canvasID+"'>";
+html+="<img id='noscriptImg'/>";
+html+="</canvas>";
+html+="<noscript style='margin-top:20px;display:inline-block;'>";
+html+="Unable to Edit Image because Javascript is Disabled or html5 Canvas is not supported.";
+html+="</noscript>";
 
 
-html=html+"<div id='buttonRow'>";
+html+="<div id='buttonRow'>";
 
-html=html+"<div id='zoomButtons'><button  type='button' id='zoomInButton' onclick='zoomIn(zoomButtonPercentage)'>";
-html=html+zoomInButtonText;
-html=html+"</button>";
-html=html+"<button  type='button' id='zoomOutButton'  onclick='zoomOut(zoomButtonPercentage)'>";
-html=html+zoomOutButtonText;
-html=html+"</button></div>";
+html+="<div id='zoomButtons'><button  type='button' id='zoomInButton' onclick='zoomIn(zoomButtonPercentage)'>";
+html+=zoomInButtonText;
+html+="</button>";
+html+="<button type='button' id='zoomOutButton'  onclick='zoomOut(zoomButtonPercentage)'>";
+html+=zoomOutButtonText;
+html+="</button></div>";
 
-html=html+"<div id='fileWrapper'>";
-html=html+"<text id='fileSelectText'>Select File</text>";
-html=html+"<input id='imgUpload' type='file' name='imgUpload' onchange='readFile();' accept='image/*'>";
-html=html+"<label id='fileSelectLabel' for='imgUpload' style=''>.</label>";
-html=html+"</div>";
+html+="<div id='fileSelectButton'>";
+html+="<text id='fileSelectText'>Select File</text>";
+html+="<input id='imgUpload' type='file' name='imgUpload' onchange='readFile();' accept='image/*'>";
+html+="<label id='fileSelectLabel' for='imgUpload' style=''>.</label>";
+html+="</div>";
 
 
 
-html=html+"<button id='setButton' type='button' onclick='setButtonPressed()'>";
-html=html+"<text id='setButtonText'>";
-html=html+"Set";
-html=html+"</text>";
-html=html+"</button>";
+html+="<button id='setButton' type='button' onclick='setButtonPressed()'>";
+html+="<text id='setButtonText'>";
+html+="Set";
+html+="</text>";
+html+="</button>";
 
-html=html+"</div>";
-html=html+"</div>";
+html+="</div>";
+html+="</div>";
 
 document.getElementById('picick').parentNode.innerHTML=(html);
 }
@@ -347,23 +344,44 @@ function bindings(){
  };
 
  c.ontouchmove = function(e){
+
  touchScreen=true;
  event.preventDefault();
  if(pauseLoop){return LOOP_PAUSED;}
-
+ alert(e.touches.length);
  if((e.touches.length)==1){
  if(dragging){draggingImage(e.touches[0]);}}
  else{
- if(fing1x<e.touches[0].clientX
-   &fing2x>e.touches[1].clientX){zoomIn(zoomTouchPercentage);}
- else if(e.touches[0].clientX<fing1x
-   &e.touches[1].clientX>fing2x){zoomOut(zoomTouchPercentage);}
+ 
+    var l,r;
+  l=((e.touches[0].clientX<e.touches[1].clientX)? 0:1);
+  r=((l==0)?1:0);
+    var curX1=e.touches[l].clientX,curY1=e.touches[l].clientY,curX2=e.touches[r].clientX,curY2=e.touches[r].clientY;
+    alert("1: "+curX1+","+curY1+"    "+"2: "+curX2+","+curY2);
 
- fing1x=e.touches[0].clientX;
- fing1y=e.touches[0].clientY;
- fing2x=e.touches[1].clientX;
- fing2y=e.touches[1].clientY;
+  var sampSize=1;
+ fing1x.push(e.touches[l].clientX);
+ if(fing1x.length>sampSize){fing1x.shift();}
+ fing2x.push(e.touches[r].clientX);
+ if(fing21x.length>sampSize){fing2x.shift();}
+ fing1y.push(e.touches[l].clientY);
+ if(fing1y.length>sampSize){fing1y.shift();}
+ fing2y.push(e.touches[r].clientY);
+ if(fing2y.length>sampSize){fing2y.shift();}
 
+ 
+   var nDX=(curX2-curX1),nDY=(curY2-curY1);
+   var curDX=(average(fing2x)-average(fing1x)),
+    curDY=(average(fing2y)-average(fing1y));
+
+  
+ if(nDX<curDX|nDY>curDY){zoomIn(zoomTouchPercentage);}
+ else if(nDX>curDX|curDY<dYf){zoomOut(zoomTouchPercentage);}
+
+
+ while(e.touches>1){e.touches.pop();}
+  dXf=curDX;
+  dYf=curDY;
  }}
 
  document.ontouchend = function(e){
@@ -372,6 +390,12 @@ function bindings(){
 
  }
 //End Bindings//
+function average(a){
+var sum=0;
+for(var i=0;i<a.length;i++){
+sum+=parseInt(a[i],10);
+}
+return (sum/a.length);}
 
 function zoomIn(percentage){
   if(drawRing){
@@ -430,7 +454,7 @@ function setButtonPressed(){
  context.drawImage(img, dX, dY,dwidth,dheight);
  var dataURL = c.toDataURL();
  picSet(dataURL);}
- else{notFilled();return false;}
+ else{notFilled(dataURL);return false;}
  return true;}
 
 function draggingImage(event){
